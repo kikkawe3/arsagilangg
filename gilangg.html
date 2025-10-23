@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Tebak Angka</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2.2rem;
+        }
+        
+        .description {
+            color: #555;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+        
+        .game-area {
+            margin: 25px 0;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            margin: 15px 0;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            text-align: center;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            border-color: #6e8efb;
+            outline: none;
+        }
+        
+        button {
+            background-color: #6e8efb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background-color: #5a7dfa;
+            transform: translateY(-2px);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .attempts {
+            margin-top: 15px;
+            color: #777;
+            font-weight: bold;
+        }
+        
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #a5d6a7;
+        }
+        
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+        }
+        
+        .info {
+            background-color: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #90caf9;
+        }
+        
+        .new-game {
+            background-color: #4caf50;
+        }
+        
+        .new-game:hover {
+            background-color: #43a047;
+        }
+        
+        .history {
+            margin-top: 20px;
+            text-align: left;
+        }
+        
+        .history h3 {
+            margin-bottom: 10px;
+            color: #555;
+        }
+        
+        .history-list {
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        
+        .history-item {
+            padding: 5px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .history-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Game Tebak Angka</h1>
+        <p class="description">
+            Saya telah memilih angka antara 1 hingga 100. Coba tebak angka tersebut!
+            Saya akan memberi petunjuk apakah tebakan Anda terlalu tinggi atau terlalu rendah.
+        </p>
+        
+        <div class="game-area">
+            <input type="number" id="guessInput" min="1" max="100" placeholder="Masukkan tebakan (1-100)">
+            <div>
+                <button id="guessButton">Tebak</button>
+                <button id="newGameButton" class="hidden new-game">Game Baru</button>
+            </div>
+        </div>
+        
+        <div id="result" class="result"></div>
+        
+        <div class="attempts">
+            Jumlah tebakan: <span id="attemptCount">0</span>
+        </div>
+        
+        <div class="history">
+            <h3>Riwayat Tebakan:</h3>
+            <div id="historyList" class="history-list"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elemen DOM
+            const guessInput = document.getElementById('guessInput');
+            const guessButton = document.getElementById('guessButton');
+            const newGameButton = document.getElementById('newGameButton');
+            const resultDiv = document.getElementById('result');
+            const attemptCountSpan = document.getElementById('attemptCount');
+            const historyList = document.getElementById('historyList');
+            
+            // Variabel game
+            let secretNumber;
+            let attempts;
+            let gameOver;
+            
+            // Inisialisasi game
+            initGame();
+            
+            // Event listener untuk tombol tebak
+            guessButton.addEventListener('click', makeGuess);
+            
+            // Event listener untuk tombol game baru
+            newGameButton.addEventListener('click', initGame);
+            
+            // Event listener untuk tekan Enter di input
+            guessInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    makeGuess();
+                }
+            });
+            
+            // Fungsi untuk inisialisasi game
+            function initGame() {
+                secretNumber = Math.floor(Math.random() * 100) + 1;
+                attempts = 0;
+                gameOver = false;
+                
+                // Reset tampilan
+                guessInput.value = '';
+                resultDiv.textContent = '';
+                resultDiv.className = 'result';
+                attemptCountSpan.textContent = '0';
+                historyList.innerHTML = '';
+                
+                // Tampilkan input dan sembunyikan tombol game baru
+                guessInput.disabled = false;
+                guessButton.disabled = false;
+                newGameButton.classList.add('hidden');
+                
+                // Fokus ke input
+                guessInput.focus();
+                
+                console.log('Angka rahasia: ' + secretNumber); // Untuk debugging
+            }
+            
+            // Fungsi untuk memproses tebakan
+            function makeGuess() {
+                if (gameOver) return;
+                
+                const guess = parseInt(guessInput.value);
+                
+                // Validasi input
+                if (isNaN(guess) || guess < 1 || guess > 100) {
+                    resultDiv.textContent = 'Masukkan angka antara 1 dan 100!';
+                    resultDiv.className = 'result error';
+                    return;
+                }
+                
+                attempts++;
+                attemptCountSpan.textContent = attempts;
+                
+                // Tambahkan ke riwayat
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                historyItem.textContent = `Tebakan #${attempts}: ${guess}`;
+                historyList.appendChild(historyItem);
+                
+                // Scroll ke bawah riwayat
+                historyList.scrollTop = historyList.scrollHeight;
+                
+                // Periksa tebakan
+                if (guess === secretNumber) {
+                    // Tebakan benar
+                    resultDiv.textContent = `Selamat! Anda berhasil menebak angka ${secretNumber} dalam ${attempts} percobaan!`;
+                    resultDiv.className = 'result success';
+                    gameOver = true;
+                    endGame();
+                } else if (guess < secretNumber) {
+                    // Tebakan terlalu rendah
+                    resultDiv.textContent = `Terlalu rendah! Coba angka yang lebih tinggi.`;
+                    resultDiv.className = 'result info';
+                } else {
+                    // Tebakan terlalu tinggi
+                    resultDiv.textContent = `Terlalu tinggi! Coba angka yang lebih rendah.`;
+                    resultDiv.className = 'result info';
+                }
+                
+                // Kosongkan input
+                guessInput.value = '';
+                guessInput.focus();
+            }
+            
+            // Fungsi untuk mengakhiri game
+            function endGame() {
+                guessInput.disabled = true;
+                guessButton.disabled = true;
+                newGameButton.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
